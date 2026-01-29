@@ -449,12 +449,10 @@ class PlayerFixtureAnalyzer {
                 // Show top 5 players for each position
                 players.slice(0, 5).forEach((player, index) => {
                     const rank = index + 1;
-                    console.log(`${rank}. ${player.name.padEnd(18)} | ${player.team.padEnd(12)} | £${player.cost.toFixed(1)} | Score: ${player.totalVulnerabilityScore}`);
+                    console.log(`${rank}. ${player.webName.padEnd(18)} | ${player.team.padEnd(12)} | £${player.cost.toFixed(1)}`);
                     
                     // Show fixtures
-                    console.log(`   Fixtures: ${player.fixtures.map(f => 
-                        `${f.opponent}(${f.vulnerabilityScore.toFixed(1)})`
-                    ).join(', ')}`);
+                    console.log(`   Fixtures: ${player.fixtures.map(f => f.opponent).join(', ')}`);
                     console.log(`   Form: ${player.form} | Ownership: ${player.selectedBy}%\n`);
                 });
             });
@@ -471,7 +469,7 @@ class PlayerFixtureAnalyzer {
             Object.keys(recommendations[weeks]).forEach(position => {
                 const topPlayer = recommendations[weeks][position][0];
                 if (topPlayer) {
-                    console.log(`${position}: ${topPlayer.name} (${topPlayer.team}) - Score: ${topPlayer.totalVulnerabilityScore}`);
+                    console.log(`${position}: ${topPlayer.webName} (${topPlayer.team})`);
                 }
             });
         });
