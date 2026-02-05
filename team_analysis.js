@@ -313,6 +313,29 @@ class PlayerFixtureAnalyzer {
     }
 
     /**
+     * Check if player is a regular starter based on recent playing time
+     * A player is considered a regular starter if they average 60+ minutes per game
+     */
+    isRegularStarter(player) {
+        // Require minimum games played to have enough data
+        if (player.minutes < 450) return false; // At least 5 full games worth of minutes
+        
+        // Calculate average minutes per game
+        // We can estimate games played from total minutes and form
+        // If a player has high minutes but low form, they might not be playing recently
+        const avgMinutesPerGame = player.minutes / Math.max(1, Math.ceil(player.minutes / 90));
+        
+        // Check recent form - form is calculated from last 5 games
+        // If form is 0, player hasn't played recently or hasn't scored
+        // We want players who are actually playing, so form should exist
+        const hasRecentPlayingTime = parseFloat(player.form) !== 0 || player.minutes >= 1800; // Form exists OR played 20 full games
+        
+        // Player should average at least 60 minutes per appearance to be a regular starter
+        // Also check they've played recently (form isn't zero, unless they have massive minutes suggesting they're established)
+        return avgMinutesPerGame >= 60 && hasRecentPlayingTime;
+    }
+
+    /**
      * Get upcoming fixtures for a player within specified gameweeks
      */
     getPlayerUpcomingFixtures(playerId, gameweeksAhead) {
@@ -369,7 +392,7 @@ class PlayerFixtureAnalyzer {
      */
     analyzeTimeHorizon(gameweeksAhead) {
         const playerAnalysis = this.allPlayersData
-            .filter(player => player.status === 'a' && player.minutes > 200) // Available and played some minutes
+            .filter(player => player.status === 'a' && this.isRegularStarter(player)) // Available and currently playing regularly
             .map(player => {
                 const fixtures = this.getPlayerUpcomingFixtures(player.id, gameweeksAhead);
                 const totalVulnerability = fixtures.reduce((sum, fixture) => sum + fixture.vulnerabilityScore, 0);

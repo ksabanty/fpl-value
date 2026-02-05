@@ -46,6 +46,25 @@ class FPLAnalyzer {
     }
 
     /**
+     * Check if player is currently a regular starter based on recent playing time
+     */
+    isRegularStarter(player) {
+        // Require minimum games played
+        if (player.minutes < 450) return false; // At least 5 full games
+        
+        // Calculate average minutes per appearance
+        // A regular starter should average 60+ minutes per game
+        const estimatedGamesPlayed = Math.max(1, Math.ceil(player.minutes / 90));
+        const avgMinutesPerGame = player.minutes / estimatedGamesPlayed;
+        
+        // Check form to ensure they're playing recently
+        // Form > 0 indicates they've played in recent gameweeks
+        const hasRecentPlayingTime = parseFloat(player.form) !== 0 || player.minutes >= 1800;
+        
+        return avgMinutesPerGame >= 60 && hasRecentPlayingTime;
+    }
+
+    /**
      * Get top scorers by total points
      */
     getTopScorers(limit = 10) {
@@ -70,6 +89,7 @@ class FPLAnalyzer {
      */
     getBestValuePlayers(limit = 10) {
         const valuePlayers = this.allPlayersData
+            .filter(player => this.isRegularStarter(player) && player.total_points > 20) // Currently playing regularly
             .map(player => ({
                 name: `${player.first_name} ${player.second_name}`,
                 webName: player.web_name,
@@ -77,7 +97,8 @@ class FPLAnalyzer {
                 cost: player.now_cost / 10,
                 pointsPerMillion: (player.total_points / (player.now_cost / 10)).toFixed(2),
                 form: parseFloat(player.form),
-                selectedBy: parseFloat(player.selected_by_percent)
+                selectedBy: parseFloat(player.selected_by_percent),
+                minutes: player.minutes
             }))
             .filter(player => player.cost > 4.0) // Filter out very cheap players
             .sort((a, b) => b.pointsPerMillion - a.pointsPerMillion)
@@ -118,7 +139,7 @@ class FPLAnalyzer {
      */
     getBestFormPlayers(limit = 10) {
         const formPlayers = this.allPlayersData
-            .filter(player => player.minutes > 450) // At least 5 games worth of minutes
+            .filter(player => this.isRegularStarter(player) && player.total_points > 20) // Currently playing regularly with meaningful contributions
             .sort((a, b) => parseFloat(b.form) - parseFloat(a.form))
             .slice(0, limit)
             .map(player => ({
@@ -245,7 +266,8 @@ class FPLAnalyzer {
         const differentials = this.allPlayersData
             .filter(player => 
                 parseFloat(player.selected_by_percent) <= maxOwnership && 
-                player.total_points >= minPoints
+                player.total_points >= minPoints &&
+                this.isRegularStarter(player) // Must be currently playing regularly
             )
             .sort((a, b) => b.total_points - a.total_points)
             .map(player => ({
